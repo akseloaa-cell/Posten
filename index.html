@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#172b26">
+  <title>Posten — Postal Empire</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="Posten hjem">
+        <span class="brand-mark">P</span>
+        <span><strong>POSTEN</strong><small>POSTAL EMPIRE</small></span>
+      </a>
+      <div class="company-label">DITT POSTSYSTEM</div>
+      <nav class="main-nav" aria-label="Hovedmeny">
+        <button class="nav-link active" data-view="overview"><span>▦</span> Oversikt</button>
+        <button class="nav-link" data-view="network"><span>⌁</span> Rutenettverk</button>
+        <button class="nav-link" data-view="cities"><span>⌂</span> Byer og bygg</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="era-card"><span class="eyebrow">NÅVÆRENDE EPOKE</span><strong id="era-name">Den tidlige posten</strong><small id="era-year">År 1850</small></div>
+        <button class="quiet-button" id="reset-button">↺ Start nytt spill</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div><span class="eyebrow" id="date-label">JANUAR · ÅR 1850</span><h1 id="page-title">Postoversikt</h1></div>
+        <button class="primary-button" id="next-month-button">Neste måned <span>→</span></button>
+      </header>
+
+      <section class="stats-grid" aria-label="Nøkkeltall">
+        <article class="stat-card"><div class="stat-label">KASSEBEHOLDNING <span class="stat-icon">₭</span></div><strong id="money-value">20 000 kr</strong><small id="money-change">Klar for investering</small></article>
+        <article class="stat-card"><div class="stat-label">OMDØMME <span class="stat-icon">✳</span></div><strong id="reputation-value">65 / 100</strong><small>Innbyggernes tillit</small></article>
+        <article class="stat-card"><div class="stat-label">POST LEVERT <span class="stat-icon">✉</span></div><strong id="delivered-value">0</strong><small id="delivery-rate">Ingen leveranser ennå</small></article>
+        <article class="stat-card"><div class="stat-label">AKTIVE RUTER <span class="stat-icon">⌁</span></div><strong id="routes-value">0</strong><small id="offices-value">1 postkontor</small></article>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel map-panel" id="map-panel">
+          <div class="panel-heading"><div><span class="eyebrow">NASJONALT NETTVERK</span><h2>Postkart</h2></div><span class="live-pill"><i></i> DIN REGION</span></div>
+          <div id="map-container" class="map-container" aria-label="Kart over byer og postruter"></div>
+          <div class="map-legend"><span><i class="legend-dot city-dot"></i> By</span><span><i class="legend-line"></i> Aktiv postrute</span><span><i class="legend-dot office-dot"></i> Postkontor</span></div>
+        </article>
+
+        <article class="panel action-panel">
+          <div class="panel-heading"><div><span class="eyebrow">BYGG NETTVERKET</span><h2>Utvikling</h2></div><span class="small-counter" id="building-count">1 bygg</span></div>
+          <div class="action-card"><div class="action-symbol">⌂</div><div class="action-copy"><strong>Postkontor</strong><p>Samle inn og lever ut post i en by.</p><small>Investering: 2 500 kr</small></div><button class="outline-button" id="build-office-button">Bygg</button></div>
+          <div class="action-card"><div class="action-symbol">▤</div><div class="action-copy"><strong>Sorteringssenter</strong><p>Øk kapasiteten i byens postnett.</p><small>Investering: 6 000 kr</small></div><button class="outline-button" id="build-hub-button">Bygg</button></div>
+          <div class="section-divider"></div>
+          <div class="panel-heading compact-heading"><div><span class="eyebrow">MÅNEDENS DRIFT</span><h2>Resultat</h2></div></div>
+          <div class="finance-row"><span>Leveringsinntekter</span><strong id="income-value">0 kr</strong></div>
+          <div class="finance-row"><span>Driftskostnader</span><strong id="cost-value">0 kr</strong></div>
+          <div class="finance-row total-row"><span>Siste måneds resultat</span><strong id="profit-value">—</strong></div>
+          <p class="hint" id="event-message" role="status">Velkommen! Bygg et postkontor i en ny by for å begynne å utvide.</p>
+        </article>
+      </section>
+
+      <section class="lower-grid">
+        <article class="panel"><div class="panel-heading"><div><span class="eyebrow">UTVIDELSE</span><h2>Byer</h2></div><span class="small-counter" id="city-count">6 byer</span></div><div id="cities-list" class="cities-list"></div></article>
+        <article class="panel"><div class="panel-heading"><div><span class="eyebrow">LOGISTIKK</span><h2>Opprett postrute</h2></div></div><p class="panel-intro">Ruter kobler sammen byer med postkontor. Hver rute har kapasitet og månedlige kostnader.</p><form id="route-form" class="route-form"><label>Fra by<select id="route-from" required></select></label><span class="route-arrow">→</span><label>Til by<select id="route-to" required></select></label><button class="primary-button" type="submit">Opprett rute</button></form><div id="routes-list" class="routes-list"></div></article>
+      </section>
+      <footer class="footer-note">POSTEN · BYGG ET NETTVERK. KNYTT BYER SAMMEN. LEVER HVER DAG.</footer>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="js/data.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/economy.js"></script>
+  <script src="js/logistics.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
