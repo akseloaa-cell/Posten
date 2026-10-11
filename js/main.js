@@ -44,7 +44,6 @@
     mapCenterX = Math.max(width / 2, Math.min(360 - width / 2, mapCenterX));
     mapCenterY = Math.max(height / 2, Math.min(180 - height / 2, mapCenterY));
     svg.setAttribute("viewBox", (mapCenterX - width / 2) + " " + (mapCenterY - height / 2) + " " + width + " " + height);
-    svg.querySelectorAll(".city-label").forEach(label => label.style.display = zoom >= 2.2 ? "" : "none");
   }
   function renderMap() {
     const cities = window.GAME_DATA.cities, s = window.GameState.current;
