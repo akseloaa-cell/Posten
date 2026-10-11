@@ -4,7 +4,7 @@
   const number = value => Math.round(value).toLocaleString("nb-NO");
   const money = value => number(value) + " kr";
   const monthNames = ["Januar","Februar","Mars","April","Mai","Juni","Juli","August","September","Oktober","November","Desember"];
-  let toastTimer, activeView = "overview", zoom = 1;
+  let toastTimer, activeView = "overview", zoom = 1, mapCenterX = 180, mapCenterY = 90, dragging = false, dragMoved = false, dragStartX = 0, dragStartY = 0, dragStartCenterX = 180, dragStartCenterY = 90;
   function showToast(message) {
     const toast = $("toast"); toast.textContent = message; toast.classList.add("show");
     clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
@@ -37,31 +37,34 @@
     profit.className = s.profitLastMonth === null ? "" : (s.profitLastMonth >= 0 ? "positive" : "negative");
     $("event-message").textContent = s.lastMessage;
   }
+  function applyMapView() {
+    const svg = $("map-container").querySelector("svg");
+    if (!svg) return;
+    const width = 360 / zoom, height = 180 / zoom;
+    mapCenterX = Math.max(width / 2, Math.min(360 - width / 2, mapCenterX));
+    mapCenterY = Math.max(height / 2, Math.min(180 - height / 2, mapCenterY));
+    svg.setAttribute("viewBox", (mapCenterX - width / 2) + " " + (mapCenterY - height / 2) + " " + width + " " + height);
+    svg.querySelectorAll(".city-label").forEach(label => label.style.display = zoom >= 2.2 ? "" : "none");
+  }
   function renderMap() {
     const cities = window.GAME_DATA.cities, s = window.GameState.current;
-    // Project geographic coordinates into a tall, map-like view of mainland Norway.
-    const points = Object.fromEntries(cities.map(c => [c.id, {
-      x: 20 + ((c.lon - 3.5) / 29) * 60,
-      y: ((71.5 - c.lat) / 14) * 100
-    }]));
+    const points = Object.fromEntries(cities.map(c => [c.id, { x: c.lon + 180, y: 90 - c.lat }]));
     const routeSvg = s.routes.map(route => {
       const a = points[route.from], b = points[route.to]; if (!a || !b) return "";
       return '<line class="map-route" data-route="' + route.id + '" x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" vector-effect="non-scaling-stroke"><title>' + cityById(route.from).name + ' – ' + cityById(route.to).name + '</title></line>';
     }).join("");
     const citySvg = cities.map(city => {
       const p = points[city.id], office = ownsOffice(city.id), hub = ownsHub(city.id), selected = s.selectedCityId === city.id;
-      const labelAnchor = city.id === "bergen" || city.id === "stavanger" ? "start" : "start";
-      const labelDx = city.id === "bergen" ? 2.3 : city.id === "stavanger" ? 2.3 : 2.4;
-      const labelDy = city.id === "kristiansand" ? -2.3 : city.id === "stavanger" ? 2.8 : -1.7;
-      return '<g class="map-city ' + (office ? "has-office " : "") + (hub ? "has-hub " : "") + (selected ? "selected" : "") + '" data-city="' + city.id + '" tabindex="0" role="button" aria-label="Åpne ' + city.name + '"><circle class="city-halo" cx="' + p.x + '" cy="' + p.y + '" r="' + (selected ? 3.7 : 2.7) + '"></circle><circle class="city-dot" cx="' + p.x + '" cy="' + p.y + '" r="' + (office ? 1.55 : 1.15) + '"></circle>' + (hub ? '<rect class="hub-mark" x="' + (p.x + 1.1) + '" y="' + (p.y - 3.2) + '" width="2" height="2" rx=".3"></rect>' : '') + '<text text-anchor="' + labelAnchor + '" x="' + (p.x + labelDx) + '" y="' + (p.y + labelDy) + '">' + city.name + '</text></g>';
+      const labelDx = city.id === "bergen" || city.id === "stavanger" ? 1.4 : 1.2;
+      const labelDy = city.id === "kristiansand" ? 2.2 : city.id === "stavanger" ? -1.3 : -1.2;
+      return '<g class="map-city ' + (office ? "has-office " : "") + (hub ? "has-hub " : "") + (selected ? "selected" : "") + '" data-city="' + city.id + '" tabindex="0" role="button" aria-label="Åpne ' + city.name + '"><circle class="city-halo" cx="' + p.x + '" cy="' + p.y + '" r="' + (selected ? 1.8 : 1.35) + '"></circle><circle class="city-dot" cx="' + p.x + '" cy="' + p.y + '" r="' + (office ? .9 : .65) + '"></circle>' + (hub ? '<rect class="hub-mark" x="' + (p.x + .6) + '" y="' + (p.y - 1.4) + '" width=".9" height=".9" rx=".12"></rect>' : '') + '<text class="city-label" x="' + (p.x + labelDx) + '" y="' + (p.y + labelDy) + '">' + city.name + '</text></g>';
     }).join("");
-    // Mainland outline generated from Natural Earth ne_110m_admin_0_countries.geojson (Norway).
-    // Natural Earth is a cartographic dataset; this 1:110m layer is generalized, not survey-grade coastline data.
-    const land = '<path class="land-shape" d="M77.11 13.87 L73.59 16.74 L71.91 17.39 L72.79 12.38 L70.14 9.54 L66.92 11.96 L65.91 17.20 L63.94 20.36 L61.71 18.63 L59.01 18.99 L56.71 15.21 L55.47 17.10 L54.19 17.39 L53.89 22.09 L49.99 20.95 L49.44 24.92 L47.45 24.90 L46.09 29.98 L44.02 37.90 L40.80 47.95 L41.56 50.39 L40.84 53.22 L38.79 53.10 L37.44 59.80 L37.57 69.28 L38.89 72.90 L38.21 81.30 L36.49 86.20 L35.57 90.31 L34.19 85.93 L30.10 94.19 L27.34 95.87 L24.48 92.23 L23.74 84.55 L23.09 68.06 L24.99 63.47 L30.46 57.47 L34.54 50.10 L38.33 40.14 L43.30 26.35 L46.76 20.98 L52.45 12.02 L56.99 8.89 L60.39 9.27 L63.54 3.35 L67.32 3.67 L71.03 2.25 L77.50 7.47 L74.84 9.38 L77.11 13.87 Z"/>' +
-      '<text class="water-label" x="4" y="60">NORDSJØEN</text><text class="water-label" x="68" y="48">SVERIGE</text><text class="water-label" x="55" y="4">BARENTSHAVET</text>';
-    $("map-container").innerHTML = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="transform:scale(' + zoom + ');transform-origin:center center" aria-label="Kart over Norge">' + land + routeSvg + citySvg + '</svg>';
+    const land = '<path class="world-countries" d="' + window.WORLD_MAP_PATH + '" fill-rule="evenodd"/>' +
+      '<text class="water-label" x="45" y="78">STILLEHAVET</text><text class="water-label" x="172" y="76">ATLANTERHAVET</text><text class="water-label" x="260" y="123">INDIAHAVET</text><text class="water-label" x="170" y="14">ISHAVET</text>';
+    $("map-container").innerHTML = '<svg viewBox="0 0 360 180" preserveAspectRatio="none" aria-label="Verdenskart med postruter">' + land + routeSvg + citySvg + '</svg>';
+    applyMapView();
     $("map-container").querySelectorAll("[data-city]").forEach(el => {
-      const choose = () => { s.selectedCityId = el.dataset.city; window.GameState.save(); activeView = "overview"; render(); };
+      const choose = () => { if (dragMoved) return; s.selectedCityId = el.dataset.city; window.GameState.save(); activeView = "overview"; render(); };
       el.addEventListener("click", choose);
       el.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); choose(); } });
     });
@@ -69,8 +72,38 @@
       event.stopPropagation(); const route = s.routes.find(r => r.id === el.dataset.route); if (!route) return;
       showToast("Postrute: " + cityById(route.from).name + " ↔ " + cityById(route.to).name + " · kapasitet " + number(route.capacity) + " sendinger/mnd.");
     }));
+    const container = $("map-container");
+    container.onpointerdown = event => {
+      if (event.target.closest("[data-city], [data-route]")) return;
+      dragging = true; dragMoved = false; dragStartX = event.clientX; dragStartY = event.clientY;
+      dragStartCenterX = mapCenterX; dragStartCenterY = mapCenterY; container.classList.add("dragging");
+      if (container.setPointerCapture) container.setPointerCapture(event.pointerId);
+    };
+    container.onpointermove = event => {
+      if (!dragging) return;
+      const dx = event.clientX - dragStartX, dy = event.clientY - dragStartY;
+      if (Math.abs(dx) + Math.abs(dy) > 3) dragMoved = true;
+      const rect = container.getBoundingClientRect();
+      mapCenterX = dragStartCenterX - dx * (360 / zoom) / rect.width;
+      mapCenterY = dragStartCenterY - dy * (180 / zoom) / rect.height;
+      applyMapView();
+    };
+    const endDrag = () => { dragging = false; container.classList.remove("dragging"); };
+    container.onpointerup = endDrag; container.onpointercancel = endDrag;
+    container.onwheel = event => {
+      event.preventDefault();
+      const oldZoom = zoom, nextZoom = Math.max(1, Math.min(8, zoom * (event.deltaY < 0 ? 1.2 : 1 / 1.2)));
+      if (nextZoom === oldZoom) return;
+      const rect = container.getBoundingClientRect(), px = (event.clientX - rect.left) / rect.width, py = (event.clientY - rect.top) / rect.height;
+      const oldW = 360 / oldZoom, oldH = 180 / oldZoom;
+      const worldX = mapCenterX - oldW / 2 + px * oldW, worldY = mapCenterY - oldH / 2 + py * oldH;
+      zoom = nextZoom;
+      const newW = 360 / zoom, newH = 180 / zoom;
+      mapCenterX = worldX - (px - .5) * newW; mapCenterY = worldY - (py - .5) * newH;
+      applyMapView();
+    };
   }
-  function renderCityPanel() {
+    function renderCityPanel() {
     const city = selectedCity(), office = ownsOffice(city.id), hub = ownsHub(city.id);
     $("panel-eyebrow").textContent = "BYADMINISTRASJON";
     $("panel-title").textContent = city.name;
@@ -144,7 +177,7 @@
     window.GameState.reset(); activeView = "overview"; render(); showToast("Nytt spill startet.");
   });
   document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => { activeView = button.dataset.view; renderView(); }));
-  $("zoom-in").addEventListener("click", () => { zoom = Math.min(1.35, zoom + .1); renderMap(); });
-  $("zoom-out").addEventListener("click", () => { zoom = Math.max(.85, zoom - .1); renderMap(); });
+  $("zoom-in").addEventListener("click", () => { zoom = Math.min(8, zoom * 1.25); applyMapView(); });
+  $("zoom-out").addEventListener("click", () => { zoom = Math.max(1, zoom / 1.25); applyMapView(); });
   render();
 })();
