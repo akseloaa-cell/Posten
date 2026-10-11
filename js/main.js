@@ -14,13 +14,10 @@
   function ownsHub(cityId) { return window.Logistics.hasBuilding(cityId, "hub"); }
   function cityById(id) { return window.GAME_DATA.cities.find(city => city.id === id); }
   function renderSelects() {
-    const cities = window.GAME_DATA.cities, from = $("route-from"), to = $("route-to");
-    const oldFrom = from.value, oldTo = to.value;
-    from.innerHTML = cities.map(c => '<option value="' + c.id + '">' + c.name + (ownsOffice(c.id) ? "" : " · mangler kontor") + '</option>').join("");
-    to.innerHTML = cities.map(c => '<option value="' + c.id + '">' + c.name + (ownsOffice(c.id) ? "" : " · mangler kontor") + '</option>').join("");
-    if (cities.some(c => c.id === oldFrom)) from.value = oldFrom;
-    if (cities.some(c => c.id === oldTo)) to.value = oldTo;
-    if (from.value === to.value && cities.length > 1) to.value = cities.find(c => c.id !== from.value).id;
+    const cities = window.GAME_DATA.cities;
+    ["route-from","network-route-from"].forEach(id => { const el = $(id), old = el.value; el.innerHTML = cities.map(c => '<option value="' + c.id + '">' + c.name + (ownsOffice(c.id) ? "" : " · mangler kontor") + '</option>').join(""); if (cities.some(c => c.id === old)) el.value = old; });
+    ["route-to","network-route-to"].forEach(id => { const el = $(id), old = el.value; el.innerHTML = cities.map(c => '<option value="' + c.id + '">' + c.name + (ownsOffice(c.id) ? "" : " · mangler kontor") + '</option>').join(""); if (cities.some(c => c.id === old)) el.value = old; });
+    [["route-from","route-to"],["network-route-from","network-route-to"]].forEach(pair => { const from = $(pair[0]), to = $(pair[1]); if (from.value === to.value && cities.length > 1) to.value = cities.find(c => c.id !== from.value).id; });
   }
   function renderStats() {
     const s = window.GameState.current;
@@ -127,6 +124,7 @@
   $("build-office-button").addEventListener("click", () => perform(window.Logistics.build(selectedCity().id, "office")));
   $("build-hub-button").addEventListener("click", () => perform(window.Logistics.build(selectedCity().id, "hub")));
   $("route-form").addEventListener("submit", event => { event.preventDefault(); perform(window.Logistics.createRoute($("route-from").value, $("route-to").value)); });
+  $("network-route-form").addEventListener("submit", event => { event.preventDefault(); perform(window.Logistics.createRoute($("network-route-from").value, $("network-route-to").value)); });
   $("next-month-button").addEventListener("click", () => {
     const result = window.Game.nextMonth(); render();
     showToast("Ny måned startet. Resultat: " + (result.profit >= 0 ? "+" : "") + money(result.profit));
