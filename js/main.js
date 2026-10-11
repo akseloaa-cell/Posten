@@ -39,16 +39,27 @@
   }
   function renderMap() {
     const cities = window.GAME_DATA.cities, s = window.GameState.current;
-    const points = Object.fromEntries(cities.map(c => [c.id, { x: 13 + c.x * .73, y: 8 + c.y * .83 }]));
+    // Project geographic coordinates into a tall, map-like view of mainland Norway.
+    const points = Object.fromEntries(cities.map(c => [c.id, {
+      x: 20 + ((c.lon - 3.5) / 29) * 60,
+      y: ((71.5 - c.lat) / 14) * 100
+    }]));
     const routeSvg = s.routes.map(route => {
       const a = points[route.from], b = points[route.to]; if (!a || !b) return "";
       return '<line class="map-route" data-route="' + route.id + '" x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" vector-effect="non-scaling-stroke"><title>' + cityById(route.from).name + ' – ' + cityById(route.to).name + '</title></line>';
     }).join("");
     const citySvg = cities.map(city => {
       const p = points[city.id], office = ownsOffice(city.id), hub = ownsHub(city.id), selected = s.selectedCityId === city.id;
-      return '<g class="map-city ' + (office ? "has-office " : "") + (hub ? "has-hub " : "") + (selected ? "selected" : "") + '" data-city="' + city.id + '" tabindex="0" role="button" aria-label="Åpne ' + city.name + '"><circle class="city-halo" cx="' + p.x + '" cy="' + p.y + '" r="' + (selected ? 3.7 : 2.7) + '"></circle><circle class="city-dot" cx="' + p.x + '" cy="' + p.y + '" r="' + (office ? 1.65 : 1.25) + '"></circle>' + (hub ? '<rect class="hub-mark" x="' + (p.x + 1.1) + '" y="' + (p.y - 3.2) + '" width="2" height="2" rx=".3"></rect>' : '') + '<text x="' + (p.x + 2.4) + '" y="' + (p.y - 1.4) + '">' + city.name + '</text></g>';
+      const labelAnchor = city.id === "bergen" || city.id === "stavanger" ? "start" : "start";
+      const labelDx = city.id === "bergen" ? 2.3 : city.id === "stavanger" ? 2.3 : 2.4;
+      const labelDy = city.id === "kristiansand" ? -2.3 : city.id === "stavanger" ? 2.8 : -1.7;
+      return '<g class="map-city ' + (office ? "has-office " : "") + (hub ? "has-hub " : "") + (selected ? "selected" : "") + '" data-city="' + city.id + '" tabindex="0" role="button" aria-label="Åpne ' + city.name + '"><circle class="city-halo" cx="' + p.x + '" cy="' + p.y + '" r="' + (selected ? 3.7 : 2.7) + '"></circle><circle class="city-dot" cx="' + p.x + '" cy="' + p.y + '" r="' + (office ? 1.55 : 1.15) + '"></circle>' + (hub ? '<rect class="hub-mark" x="' + (p.x + 1.1) + '" y="' + (p.y - 3.2) + '" width="2" height="2" rx=".3"></rect>' : '') + '<text text-anchor="' + labelAnchor + '" x="' + (p.x + labelDx) + '" y="' + (p.y + labelDy) + '">' + city.name + '</text></g>';
     }).join("");
-    const land = '<path class="land-shape" d="M39 3 L44 6 42 11 46 15 43 20 47 23 45 28 49 32 47 36 53 40 52 44 57 49 54 53 58 57 54 62 57 66 52 72 49 77 44 80 42 87 37 91 34 87 37 81 35 76 39 70 37 65 33 61 34 56 30 53 32 47 29 43 33 38 31 33 35 28 33 23 37 18 35 13 39 9 Z"/><path class="land-detail" d="M39 8 L37 17 41 23 38 29 42 36 39 42 45 48 43 54 48 60 45 67 48 72 M34 39 L39 37 43 41 M38 56 L43 59 48 56 M38 75 L43 77"/><text class="water-label" x="13" y="39">NORDSJØEN</text><text class="water-label" x="68" y="55">SVERIGE</text><text class="water-label" x="68" y="59"> </text>';
+    // Simplified mainland outline traced from the Norwegian coastline and Swedish border.
+    const land = '<g transform="translate(20 0) scale(.6 1)"><path class="land-shape" d="M77 8 L72 7 68 9 63 7 59 9 55 8 52 11 48 10 45 13 41 14 39 18 35 20 34 24 30 26 29 30 26 33 25 37 22 39 21 43 18 46 17 50 14 53 13 57 11 60 12 64 14 67 17 70 19 73 21 77 24 80 27 83 29 87 33 90 37 92 41 95 45 97 49 96 51 92 49 89 47 86 48 82 46 78 48 74 47 70 50 66 51 61 54 57 56 52 58 48 59 44 62 40 64 36 67 32 70 28 73 25 77 23 81 21 85 18 91 16 96 13 93 11 87 10 82 9 Z"/></g>' +
+      '<path class="land-detail" d="M65 10 Q61 14 58 19 T51 30 T47 42 T42 53 T40 65 T43 76 M42 78 Q47 82 47 88 M55 28 Q58 31 61 31"/>' +
+      '<path class="island-shape" d="M37 28 l-1.1 3.2 1.4 2.1 1.1-3.4z M34 32 l-1.2 2.4 1.1 1.8 1.4-2.8z M31 36 l-1.2 2.1 1.2 1.4 1.1-2.2z M28 40 l-1 2 1 1.3 1-2z"/>' +
+      '<text class="water-label" x="4" y="60">NORDSJØEN</text><text class="water-label" x="68" y="48">SVERIGE</text><text class="water-label" x="55" y="4">BARENTSHAVET</text>';
     $("map-container").innerHTML = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="transform:scale(' + zoom + ');transform-origin:center center" aria-label="Kart over Norge">' + land + routeSvg + citySvg + '</svg>';
     $("map-container").querySelectorAll("[data-city]").forEach(el => {
       const choose = () => { s.selectedCityId = el.dataset.city; window.GameState.save(); activeView = "overview"; render(); };
