@@ -64,7 +64,7 @@
     $("map-container").innerHTML = '<svg viewBox="0 0 360 180" preserveAspectRatio="none" aria-label="Verdenskart med postruter">' + land + routeSvg + citySvg + '</svg>';
     applyMapView();
     $("map-container").querySelectorAll("[data-city]").forEach(el => {
-      const choose = () => { if (dragMoved) return; s.selectedCityId = el.dataset.city; window.GameState.save(); activeView = "overview"; render(); };
+      const choose = () => { s.selectedCityId = el.dataset.city; window.GameState.save(); activeView = "overview"; render(); };
       el.addEventListener("click", choose);
       el.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); choose(); } });
     });
