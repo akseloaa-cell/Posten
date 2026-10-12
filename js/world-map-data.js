@@ -30,6 +30,8 @@
       }
       function geometryPath(geometry) {
         if (!geometry) return;
+        if (geometry.type === "Feature") { geometryPath(geometry.geometry); return; }
+        if (geometry.type === "FeatureCollection") { geometry.features.forEach(geometryPath); return; }
         if (geometry.type === "Polygon") {
           geometry.coordinates.forEach(ring => {
             const path = ringPath(ring);
