@@ -4,7 +4,7 @@
   const number = value => Math.round(value).toLocaleString("nb-NO");
   const money = value => number(value) + " kr";
   const monthNames = ["Januar","Februar","Mars","April","Mai","Juni","Juli","August","September","Oktober","November","Desember"];
-  let toastTimer, activeView = "overview", mobilePanelOpen = false, zoom = 1, mapCenterX = 180, mapCenterY = 90, dragging = false, dragMoved = false, dragStartX = 0, dragStartY = 0, dragStartCenterX = 180, dragStartCenterY = 90, activePointers = new Map(), pinchStartDistance = 0, pinchStartZoom = 1, pinchStartCenterX = 180, pinchStartCenterY = 90;
+  let toastTimer, activeView = "overview", mobilePanelOpen = false, zoom = 1, mapCenterX = 180, mapCenterY = 90, dragging = false, dragMoved = false, dragStartX = 0, dragStartY = 0, dragStartCenterX = 180, dragStartCenterY = 90, activePointers = new Map(), pinchStartDistance = 0, pinchStartZoom = 1, pinchStartCenterX = 180, pinchStartCenterY = 90, suppressMapClick = false;
   function showToast(message) {
     const toast = $("toast"); toast.textContent = message; toast.classList.add("show");
     clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
@@ -63,7 +63,7 @@
     $("map-container").innerHTML = '<svg viewBox="0 0 360 180" preserveAspectRatio="xMidYMid slice" aria-label="Verdenskart med postruter">' + land + routeSvg + citySvg + '</svg>';
     applyMapView();
     $("map-container").querySelectorAll("[data-city]").forEach(el => {
-      const choose = () => { s.selectedCityId = el.dataset.city; window.GameState.save(); activeView = "overview"; mobilePanelOpen = true; render(); };
+      const choose = () => { if (suppressMapClick) { suppressMapClick = false; return; } s.selectedCityId = el.dataset.city; window.GameState.save(); activeView = "overview"; mobilePanelOpen = true; render(); };
       el.addEventListener("click", choose);
       el.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); choose(); } });
     });
@@ -83,7 +83,7 @@
         event.preventDefault();
         return;
       }
-      if (event.target.closest("[data-city], [data-route]")) return;
+      if (event.target.closest("[data-city], [data-route]")) { dragging = false; return; }
       dragging = true; dragMoved = false; dragStartX = event.clientX; dragStartY = event.clientY;
       dragStartCenterX = mapCenterX; dragStartCenterY = mapCenterY; container.classList.add("dragging");
     };
@@ -101,7 +101,7 @@
       }
       if (!dragging) return;
       const dx = event.clientX - dragStartX, dy = event.clientY - dragStartY;
-      if (Math.abs(dx) + Math.abs(dy) > 3) dragMoved = true;
+      if (Math.abs(dx) + Math.abs(dy) > 3) { dragMoved = true; suppressMapClick = true; }
       const rect = container.getBoundingClientRect();
       mapCenterX = dragStartCenterX - dx * (360 / zoom) / rect.width;
       mapCenterY = dragStartCenterY - dy * (180 / zoom) / rect.height;
