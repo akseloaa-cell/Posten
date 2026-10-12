@@ -108,8 +108,12 @@
       const dx = event.clientX - dragStartX, dy = event.clientY - dragStartY;
       if (Math.abs(dx) + Math.abs(dy) > 3) { dragMoved = true; suppressMapClick = true; }
       const rect = container.getBoundingClientRect();
-      mapCenterX = dragStartCenterX - dx * (360 / zoom) / rect.width;
-      mapCenterY = dragStartCenterY - dy * (180 / zoom) / rect.height;
+      // SVG bruker preserveAspectRatio="xMidY slice": samme målestokk på begge akser,
+      // basert på den aksen som fyller kartflaten. Bruk den for 1:1 fingerbevegelse.
+      const viewWidth = 360 / zoom, viewHeight = 180 / zoom;
+      const pixelsPerMapUnit = Math.max(rect.width / viewWidth, rect.height / viewHeight);
+      mapCenterX = dragStartCenterX - dx / pixelsPerMapUnit;
+      mapCenterY = dragStartCenterY - dy / pixelsPerMapUnit;
       scheduleMapView();
     };
     const endDrag = event => {
