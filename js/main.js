@@ -4,7 +4,7 @@
   const number = value => Math.round(value).toLocaleString("nb-NO");
   const money = value => number(value) + " kr";
   const monthNames = ["Januar","Februar","Mars","April","Mai","Juni","Juli","August","September","Oktober","November","Desember"];
-  let toastTimer, activeView = "overview", mobilePanelOpen = false, zoom = 1, mapCenterX = 180, mapCenterY = 90, dragging = false, dragMoved = false, dragStartX = 0, dragStartY = 0, dragStartCenterX = 180, dragStartCenterY = 90, activePointers = new Map(), pinchStartDistance = 0, pinchStartZoom = 1, pinchStartCenterX = 180, pinchStartCenterY = 90, suppressMapClick = false;
+  let mapFrame = 0, toastTimer, activeView = "overview", mobilePanelOpen = false, zoom = 1, mapCenterX = 180, mapCenterY = 90, dragging = false, dragMoved = false, dragStartX = 0, dragStartY = 0, dragStartCenterX = 180, dragStartCenterY = 90, activePointers = new Map(), pinchStartDistance = 0, pinchStartZoom = 1, pinchStartCenterX = 180, pinchStartCenterY = 90, suppressMapClick = false;
   function showToast(message) {
     const toast = $("toast"); toast.textContent = message; toast.classList.add("show");
     clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
@@ -36,6 +36,11 @@
     profit.textContent = s.profitLastMonth === null ? "—" : (s.profitLastMonth > 0 ? "+" : "") + money(s.profitLastMonth);
     profit.className = s.profitLastMonth === null ? "" : (s.profitLastMonth >= 0 ? "positive" : "negative");
     $("event-message").textContent = s.lastMessage;
+  }
+  function scheduleMapView() {
+    // Samle mange touch-hendelser til én kartoppdatering per skjermbilde.
+    if (mapFrame) return;
+    mapFrame = requestAnimationFrame(() => { mapFrame = 0; applyMapView(); });
   }
   function applyMapView() {
     const svg = $("map-container").querySelector("svg");
@@ -94,7 +99,7 @@
         const distance = Math.hypot(pair[1].x - pair[0].x, pair[1].y - pair[0].y);
         if (pinchStartDistance > 0 && distance > 0) {
           zoom = Math.max(1, Math.min(8, pinchStartZoom * distance / pinchStartDistance));
-          mapCenterX = pinchStartCenterX; mapCenterY = pinchStartCenterY; applyMapView();
+          mapCenterX = pinchStartCenterX; mapCenterY = pinchStartCenterY; scheduleMapView();
         }
         event.preventDefault();
         return;
@@ -105,7 +110,7 @@
       const rect = container.getBoundingClientRect();
       mapCenterX = dragStartCenterX - dx * (360 / zoom) / rect.width;
       mapCenterY = dragStartCenterY - dy * (180 / zoom) / rect.height;
-      applyMapView();
+      scheduleMapView();
     };
     const endDrag = event => {
       activePointers.delete(event.pointerId);
@@ -113,11 +118,11 @@
       dragging = false; container.classList.remove("dragging");
     };
     container.onpointerup = endDrag; container.onpointercancel = endDrag;
-    container.onclick = event => {
+    container.addEventListener("click", event => {
       if (!suppressMapClick) return;
       suppressMapClick = false;
       event.preventDefault(); event.stopPropagation();
-    };
+    }, true);
     container.onwheel = event => {
       event.preventDefault();
       const oldZoom = zoom, nextZoom = Math.max(1, Math.min(8, zoom * (event.deltaY < 0 ? 1.2 : 1 / 1.2)));
