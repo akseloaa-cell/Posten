@@ -216,5 +216,6 @@
   document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => { activeView = button.dataset.view; mobilePanelOpen = activeView !== "overview"; renderView(); }));
   $("zoom-in").addEventListener("click", () => { zoom = Math.min(8, zoom * 1.25); applyMapView(); });
   $("zoom-out").addEventListener("click", () => { zoom = Math.max(1, zoom / 1.25); applyMapView(); });
+  window.addEventListener("worldmapready", render);
   render();
 })();
