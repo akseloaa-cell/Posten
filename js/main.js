@@ -4,7 +4,7 @@
   const number = value => Math.round(value).toLocaleString("nb-NO");
   const money = value => number(value) + " kr";
   const monthNames = ["Januar","Februar","Mars","April","Mai","Juni","Juli","August","September","Oktober","November","Desember"];
-  let toastTimer, activeView = "overview", mobilePanelOpen = false, zoom = 1, mapCenterX = 180, mapCenterY = 90, dragging = false, dragMoved = false, dragStartX = 0, dragStartY = 0, dragStartCenterX = 180, dragStartCenterY = 90;
+  let toastTimer, activeView = "overview", mobilePanelOpen = false, zoom = 1, mapCenterX = 180, mapCenterY = 90, dragging = false, dragMoved = false, dragStartX = 0, dragStartY = 0, dragStartCenterX = 180, dragStartCenterY = 90, activePointers = new Map(), pinchStartDistance = 0, pinchStartZoom = 1, pinchStartCenterX = 180, pinchStartCenterY = 90;
   function showToast(message) {
     const toast = $("toast"); toast.textContent = message; toast.classList.add("show");
     clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
@@ -60,7 +60,7 @@
     }).join("");
     const land = '<path class="world-countries" d="' + window.WORLD_MAP_PATH + '" fill-rule="evenodd"/>' +
       '<text class="water-label" x="45" y="78">STILLEHAVET</text><text class="water-label" x="172" y="76">ATLANTERHAVET</text><text class="water-label" x="260" y="123">INDIAHAVET</text><text class="water-label" x="170" y="14">ISHAVET</text>';
-    $("map-container").innerHTML = '<svg viewBox="0 0 360 180" preserveAspectRatio="none" aria-label="Verdenskart med postruter">' + land + routeSvg + citySvg + '</svg>';
+    $("map-container").innerHTML = '<svg viewBox="0 0 360 180" preserveAspectRatio="xMidYMid slice" aria-label="Verdenskart med postruter">' + land + routeSvg + citySvg + '</svg>';
     applyMapView();
     $("map-container").querySelectorAll("[data-city]").forEach(el => {
       const choose = () => { s.selectedCityId = el.dataset.city; window.GameState.save(); activeView = "overview"; mobilePanelOpen = true; render(); };
@@ -73,12 +73,32 @@
     }));
     const container = $("map-container");
     container.onpointerdown = event => {
+      activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (container.setPointerCapture) container.setPointerCapture(event.pointerId);
+      if (activePointers.size >= 2) {
+        const pair = Array.from(activePointers.values()).slice(0, 2);
+        pinchStartDistance = Math.hypot(pair[1].x - pair[0].x, pair[1].y - pair[0].y);
+        pinchStartZoom = zoom; pinchStartCenterX = mapCenterX; pinchStartCenterY = mapCenterY;
+        dragging = false; container.classList.remove("dragging");
+        event.preventDefault();
+        return;
+      }
       if (event.target.closest("[data-city], [data-route]")) return;
       dragging = true; dragMoved = false; dragStartX = event.clientX; dragStartY = event.clientY;
       dragStartCenterX = mapCenterX; dragStartCenterY = mapCenterY; container.classList.add("dragging");
-      if (container.setPointerCapture) container.setPointerCapture(event.pointerId);
     };
     container.onpointermove = event => {
+      if (activePointers.has(event.pointerId)) activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (activePointers.size >= 2) {
+        const pair = Array.from(activePointers.values()).slice(0, 2);
+        const distance = Math.hypot(pair[1].x - pair[0].x, pair[1].y - pair[0].y);
+        if (pinchStartDistance > 0 && distance > 0) {
+          zoom = Math.max(1, Math.min(8, pinchStartZoom * distance / pinchStartDistance));
+          mapCenterX = pinchStartCenterX; mapCenterY = pinchStartCenterY; applyMapView();
+        }
+        event.preventDefault();
+        return;
+      }
       if (!dragging) return;
       const dx = event.clientX - dragStartX, dy = event.clientY - dragStartY;
       if (Math.abs(dx) + Math.abs(dy) > 3) dragMoved = true;
@@ -87,7 +107,11 @@
       mapCenterY = dragStartCenterY - dy * (180 / zoom) / rect.height;
       applyMapView();
     };
-    const endDrag = () => { dragging = false; container.classList.remove("dragging"); };
+    const endDrag = event => {
+      activePointers.delete(event.pointerId);
+      if (activePointers.size < 2) pinchStartDistance = 0;
+      dragging = false; container.classList.remove("dragging");
+    };
     container.onpointerup = endDrag; container.onpointercancel = endDrag;
     container.onwheel = event => {
       event.preventDefault();
