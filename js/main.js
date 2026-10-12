@@ -63,7 +63,7 @@
     $("map-container").innerHTML = '<svg viewBox="0 0 360 180" preserveAspectRatio="xMidYMid slice" aria-label="Verdenskart med postruter">' + land + routeSvg + citySvg + '</svg>';
     applyMapView();
     $("map-container").querySelectorAll("[data-city]").forEach(el => {
-      const choose = () => { if (suppressMapClick) { suppressMapClick = false; return; } s.selectedCityId = el.dataset.city; window.GameState.save(); activeView = "overview"; mobilePanelOpen = true; render(); };
+      const choose = () => { s.selectedCityId = el.dataset.city; window.GameState.save(); activeView = "overview"; mobilePanelOpen = true; render(); };
       el.addEventListener("click", choose);
       el.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); choose(); } });
     });
@@ -74,7 +74,8 @@
     const container = $("map-container");
     container.onpointerdown = event => {
       activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
-      if (container.setPointerCapture) container.setPointerCapture(event.pointerId);
+      const startedOnInteractive = !!event.target.closest("[data-city], [data-route]");
+      if (!startedOnInteractive && container.setPointerCapture) container.setPointerCapture(event.pointerId);
       if (activePointers.size >= 2) {
         const pair = Array.from(activePointers.values()).slice(0, 2);
         pinchStartDistance = Math.hypot(pair[1].x - pair[0].x, pair[1].y - pair[0].y);
@@ -83,7 +84,6 @@
         event.preventDefault();
         return;
       }
-      if (event.target.closest("[data-city], [data-route]")) { dragging = false; return; }
       dragging = true; dragMoved = false; dragStartX = event.clientX; dragStartY = event.clientY;
       dragStartCenterX = mapCenterX; dragStartCenterY = mapCenterY; container.classList.add("dragging");
     };
@@ -113,6 +113,11 @@
       dragging = false; container.classList.remove("dragging");
     };
     container.onpointerup = endDrag; container.onpointercancel = endDrag;
+    container.onclick = event => {
+      if (!suppressMapClick) return;
+      suppressMapClick = false;
+      event.preventDefault(); event.stopPropagation();
+    };
     container.onwheel = event => {
       event.preventDefault();
       const oldZoom = zoom, nextZoom = Math.max(1, Math.min(8, zoom * (event.deltaY < 0 ? 1.2 : 1 / 1.2)));
