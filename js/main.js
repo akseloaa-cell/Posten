@@ -4,7 +4,7 @@
   const number = value => Math.round(value).toLocaleString("nb-NO");
   const money = value => number(value) + " kr";
   const monthNames = ["Januar","Februar","Mars","April","Mai","Juni","Juli","August","September","Oktober","November","Desember"];
-  let toastTimer, activeView = "overview", zoom = 1, mapCenterX = 180, mapCenterY = 90, dragging = false, dragMoved = false, dragStartX = 0, dragStartY = 0, dragStartCenterX = 180, dragStartCenterY = 90;
+  let toastTimer, activeView = "overview", mobilePanelOpen = false, zoom = 1, mapCenterX = 180, mapCenterY = 90, dragging = false, dragMoved = false, dragStartX = 0, dragStartY = 0, dragStartCenterX = 180, dragStartCenterY = 90;
   function showToast(message) {
     const toast = $("toast"); toast.textContent = message; toast.classList.add("show");
     clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
@@ -63,7 +63,7 @@
     $("map-container").innerHTML = '<svg viewBox="0 0 360 180" preserveAspectRatio="none" aria-label="Verdenskart med postruter">' + land + routeSvg + citySvg + '</svg>';
     applyMapView();
     $("map-container").querySelectorAll("[data-city]").forEach(el => {
-      const choose = () => { s.selectedCityId = el.dataset.city; window.GameState.save(); activeView = "overview"; render(); };
+      const choose = () => { s.selectedCityId = el.dataset.city; window.GameState.save(); activeView = "overview"; mobilePanelOpen = true; render(); };
       el.addEventListener("click", choose);
       el.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); choose(); } });
     });
@@ -132,7 +132,7 @@
       return '<div class="city-row" data-open-city="' + city.id + '" tabindex="0" role="button"><span class="city-marker">' + (office ? "⌂" : "○") + '</span><div class="city-row-main"><strong>' + city.name + '</strong><small>' + number(city.population) + ' innbyggere · ' + status + '</small></div><span class="city-status ' + (office ? "owned" : "") + '">›</span></div>';
     }).join("");
     $("cities-list").querySelectorAll("[data-open-city]").forEach(el => {
-      const open = () => { window.GameState.current.selectedCityId = el.dataset.openCity; window.GameState.save(); activeView = "overview"; render(); };
+      const open = () => { window.GameState.current.selectedCityId = el.dataset.openCity; window.GameState.save(); activeView = "overview"; mobilePanelOpen = true; render(); };
       el.addEventListener("click", open); el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") open(); });
     });
   }
@@ -144,7 +144,7 @@
     }).join("") : '<div class="empty-state">Ingen aktive ruter ennå. Bygg postkontor i to byer for å koble dem sammen.</div>';
     $("routes-list").querySelectorAll("[data-open-route]").forEach(el => el.addEventListener("click", () => {
       const route = list.find(r => r.id === el.dataset.openRoute); if (!route) return;
-      window.GameState.current.selectedCityId = route.from; activeView = "overview"; render();
+      window.GameState.current.selectedCityId = route.from; activeView = "overview"; mobilePanelOpen = true; render();
       showToast("Valgt rute: " + cityById(route.from).name + " ↔ " + cityById(route.to).name);
     }));
   }
@@ -173,9 +173,9 @@
   });
   $("reset-button").addEventListener("click", () => {
     if (!window.confirm("Starte et helt nytt spill? Lagret fremgang blir slettet.")) return;
-    window.GameState.reset(); activeView = "overview"; render(); showToast("Nytt spill startet.");
+    window.GameState.reset(); activeView = "overview"; mobilePanelOpen = false; render(); showToast("Nytt spill startet.");
   });
-  document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => { activeView = button.dataset.view; renderView(); }));
+  document.querySelectorAll("[data-view]").forEach(button => button.addEventListener("click", () => { activeView = button.dataset.view; mobilePanelOpen = activeView !== "overview"; renderView(); }));
   $("zoom-in").addEventListener("click", () => { zoom = Math.min(8, zoom * 1.25); applyMapView(); });
   $("zoom-out").addEventListener("click", () => { zoom = Math.max(1, zoom / 1.25); applyMapView(); });
   render();
