@@ -254,3 +254,10 @@
 .local-controls{bottom:calc(74px + env(safe-area-inset-bottom));right:10px}
 .world-area:not(:has(.local-mode)) .map-toolbar{top:calc(196px + env(safe-area-inset-top))}
 }
+
+/* Bilde og treffområder bruker samme SVG-koordinater ved all zoom. */
+.local-map{background:#e5d4ab}
+.farm-hit{fill:transparent;pointer-events:all}
+.farm-ring{fill:#e8bd5b12;stroke:#775425;stroke-width:2;stroke-dasharray:5 4;opacity:0;vector-effect:non-scaling-stroke;pointer-events:none}
+.farm-hotspot:hover .farm-ring,.farm-hotspot:focus .farm-ring,.farm-hotspot.selected .farm-ring{opacity:1}
+.local-map svg image{pointer-events:none}
